@@ -8,7 +8,7 @@
 
 #### 参考：
 
-* imooc 网视频
+* imooc 网视频 若鱼1919老师
 
   https://coding.imooc.com/class/168.html
 
@@ -28,11 +28,11 @@
 
     基于 SpringBoot + MySQL + Redis + RabbitMQ + Guava 开发的高并发商品限时秒杀系统
 
-* 其他
-
   * [qiurunze123 / miaosha](https://github.com/qiurunze123/miaosha.git)
 
     秒杀系统设计与实现.互联网工程师进阶与分析
+
+* 其他
 
   * [codingXiaxw / seckill](https://github.com/codingXiaxw/seckill.git)
 
