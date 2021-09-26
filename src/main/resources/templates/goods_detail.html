@@ -80,23 +80,24 @@
         var remainSeconds = $("#remainSeconds").val();
         var timeout;
         if (remainSeconds > 0) {//秒杀还没开始，倒计时
-//            $("#buyButton").attr("disabled", true);
+            $("#buyButton").attr("disabled", true);// 秒杀按钮不可用
             timeout = setTimeout(function () {
-                $("#countDown").text(remainSeconds - 1);
-                $("#remainSeconds").val(remainSeconds - 1);
+                $("#countDown").text(remainSeconds - 1);// 设置剩余时间文本
+                $("#remainSeconds").val(remainSeconds - 1);// 更新剩余时间变量
                 countDown();
-            }, 1000);
+            }, 1000);// 每秒更新一次
+
         } else if (remainSeconds == 0) {//秒杀进行中
-            $("#buyButton").attr("disabled", false);
-            if (timeout) {
+            $("#buyButton").attr("disabled", false);// 秒杀按钮不可用
+            if (timeout) {// 清除倒计时
                 clearTimeout(timeout);
             }
-            $("#seckillTip").html("秒杀进行中");
-        } else {//秒杀已经结束
-//            $("#buyButton").attr("disabled", true);
+            $("#seckillTip").html("秒杀进行中");// 更新文本
+
+        } else {//秒杀已经结束(remainSeconds = -1)
+            $("#buyButton").attr("disabled", true);
             $("#seckillTip").html("秒杀已经结束");
         }
     }
-
 </script>
 </html>

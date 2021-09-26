@@ -16,7 +16,7 @@ public class RedisPoolFactory {
      * 将redis连接池注入spring容器
      */
     @Bean
-    public JedisPool JedisPoolFactory() {
+    public JedisPool jedisPoolFactory() {
         JedisPoolConfig config = new JedisPoolConfig();
         config.setMaxIdle(redisConfig.getPoolMaxIdle());
         config.setMaxTotal(redisConfig.getPoolMaxTotal());

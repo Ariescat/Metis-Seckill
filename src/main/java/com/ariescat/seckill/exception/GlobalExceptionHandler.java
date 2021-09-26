@@ -8,21 +8,34 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
- * 自定义全局异常拦截器
+ * 自定义全局异常拦截器（底层使用方法拦截的方式完成，和AOP一样）
+ * 在异常发生时，将会调用这里面的方法给客户端一个响应
  */
 @ControllerAdvice
 @ResponseBody
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(value = Exception.class)//拦截所有异常
-    public Result<String> exceptionHandler(Exception e) {
-        e.printStackTrace();
+    /**
+     * 异常处理
+     *
+     * @param request 绑定了出现异常的请求信息
+     * @param e       该请求所产生的异常
+     * @return 向客户端返回的结果（这里为json数据）
+     */
+    @ExceptionHandler(value = Exception.class) // 拦截所有异常
+    public Result<String> exceptionHandler(HttpServletRequest request, Exception e) {
+
+        e.printStackTrace();// 打印原始的异常信息，方便调试
+
+        // 如果所拦截的异常是自定义的全局异常，这按自定义异常的处理方式处理，否则按默认方式处理
         if (e instanceof GlobalException) {
             GlobalException ex = (GlobalException) e;
             return Result.error(ex.getCodeMsg());
+
         } else if (e instanceof BindException) {
             BindException ex = (BindException) e;
             List<ObjectError> errors = ex.getAllErrors();//绑定错误返回很多错误，是一个错误列表，只需要第一个错误

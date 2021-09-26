@@ -5,7 +5,7 @@ import com.ariescat.seckill.bean.User;
 import com.ariescat.seckill.exception.GlobalException;
 import com.ariescat.seckill.mapper.UserMapper;
 import com.ariescat.seckill.redis.RedisService;
-import com.ariescat.seckill.redis.key.UserKey;
+import com.ariescat.seckill.redis.key.UserKeyPrefix;
 import com.ariescat.seckill.result.CodeMsg;
 import com.ariescat.seckill.util.MD5Util;
 import com.ariescat.seckill.util.UUIDUtil;
@@ -29,7 +29,7 @@ public class UserService {
 
     public User getById(long id) {
         //对象缓存
-        User user = redisService.get(UserKey.getUserById, "" + id, User.class);
+        User user = redisService.get(UserKeyPrefix.getUserById, "" + id, User.class);
         if (user != null) {
             return user;
         }
@@ -37,32 +37,34 @@ public class UserService {
         user = userMapper.getById(id);
         //再存入缓存
         if (user != null) {
-            redisService.set(UserKey.getUserById, "" + id, user);
+            redisService.set(UserKeyPrefix.getUserById, "" + id, user);
         }
         return user;
     }
 
     /**
-     * 典型缓存同步场景：更新密码
+     * 根据token获取用户信息
      */
-    public boolean updatePassword(String token, long id, String formPass) {
-        //取user
-        User user = getById(id);
-        if (user == null) {
-            throw new GlobalException(CodeMsg.MOBILE_NOT_EXIST);
+    public User getByToken(HttpServletResponse response, String token) {
+        if (StringUtils.isEmpty(token)) {
+            return null;
         }
-        //更新数据库
-        User toBeUpdate = new User();
-        toBeUpdate.setId(id);
-        toBeUpdate.setPassword(MD5Util.formPassToDBPass(formPass, user.getSalt()));
-        userMapper.update(toBeUpdate);
-        //更新缓存：先删除再插入
-        redisService.delete(UserKey.getUserById, "" + id);
-        user.setPassword(toBeUpdate.getPassword());
-        redisService.set(UserKey.getUserByToken, token, user);
-        return true;
+        User user = redisService.get(UserKeyPrefix.getUserByToken, token, User.class);
+        //延长有效期，有效期等于最后一次操作+有效期
+        if (user != null) {
+            addCookie(response, token, user);
+        }
+        return user;
     }
 
+    /**
+     * 用户登录, 要么处理成功返回true，否则会抛出全局异常
+     * 抛出的异常信息会被全局异常接收，全局异常会将异常信息传递到全局异常处理器
+     *
+     * @param loginVo 封装了客户端请求传递过来的数据（即账号密码）
+     *                （使用post方式，请求参数放在了请求体中，这个参数就是获取请求体中的数据）
+     * @return 登录成功与否
+     */
     public String login(HttpServletResponse response, LoginVo loginVo) {
         if (loginVo == null) {
             throw new GlobalException(CodeMsg.SERVER_ERROR);
@@ -92,26 +94,32 @@ public class UserService {
      * 同时将token存入cookie，保存登录状态
      */
     public void addCookie(HttpServletResponse response, String token, User user) {
-        redisService.set(UserKey.getUserByToken, token, user);
+        redisService.set(UserKeyPrefix.getUserByToken, token, user);
         Cookie cookie = new Cookie(COOKIE_NAME_TOKEN, token);
-        cookie.setMaxAge(UserKey.getUserByToken.expireSeconds());
+        cookie.setMaxAge(UserKeyPrefix.getUserByToken.expireSeconds());
         cookie.setPath("/");//设置为网站根目录
         response.addCookie(cookie);
     }
 
     /**
-     * 根据token获取用户信息
+     * 典型缓存同步场景：更新密码
      */
-    public User getByToken(HttpServletResponse response, String token) {
-        if (StringUtils.isEmpty(token)) {
-            return null;
+    public boolean updatePassword(String token, long id, String formPass) {
+        // 取user
+        User user = getById(id);
+        if (user == null) {
+            throw new GlobalException(CodeMsg.MOBILE_NOT_EXIST);
         }
-        User user = redisService.get(UserKey.getUserByToken, token, User.class);
-        //延长有效期，有效期等于最后一次操作+有效期
-        if (user != null) {
-            addCookie(response, token, user);
-        }
-        return user;
+        // 更新数据库
+        User toBeUpdate = new User();
+        toBeUpdate.setId(id);
+        toBeUpdate.setPassword(MD5Util.formPassToDBPass(formPass, user.getSalt()));
+        userMapper.updatePassword(toBeUpdate);
+        // 更新缓存：先删除再插入
+        // 如果不删除，以前的用户数据仍然存在于缓存中，则通过以前的token依旧可以访问到用户之前的数据，这会造成信息泄露
+        redisService.delete(UserKeyPrefix.getUserById, "" + id);
+        user.setPassword(toBeUpdate.getPassword());
+        redisService.set(UserKeyPrefix.getUserByToken, token, user);
+        return true;
     }
-
 }

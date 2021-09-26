@@ -1,16 +1,16 @@
 package com.ariescat.seckill.redis.key.base;
 
-public abstract class BasePrefix implements KeyPrefix {
+public abstract class BaseKeyPrefix implements KeyPrefix {
 
     private final int expireSeconds;
 
     private final String prefix;
 
-    public BasePrefix(String prefix) {
+    public BaseKeyPrefix(String prefix) {
         this(0, prefix);//默认0代表永不过期
     }
 
-    public BasePrefix(int expireSeconds, String prefix) {
+    public BaseKeyPrefix(int expireSeconds, String prefix) {
         this.expireSeconds = expireSeconds;
         this.prefix = prefix;
     }

@@ -9,7 +9,13 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Target(METHOD)
 public @interface AccessLimit {
-	int seconds();
-	int maxCount();
-	boolean needLogin() default true;
+
+    // 最大请求次数的时间间隔
+    int seconds();
+
+    // 最大请求次数
+    int maxAccessCount();
+
+    // 是否㤇重新登录
+    boolean needLogin() default true;
 }

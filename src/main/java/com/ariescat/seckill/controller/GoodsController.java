@@ -2,11 +2,10 @@ package com.ariescat.seckill.controller;
 
 import com.alibaba.druid.util.StringUtils;
 import com.ariescat.seckill.bean.User;
-import com.ariescat.seckill.redis.key.GoodsKey;
 import com.ariescat.seckill.redis.RedisService;
+import com.ariescat.seckill.redis.key.GoodsKeyPrefix;
 import com.ariescat.seckill.result.Result;
 import com.ariescat.seckill.service.GoodsService;
-import com.ariescat.seckill.service.UserService;
 import com.ariescat.seckill.vo.GoodsDetailVo;
 import com.ariescat.seckill.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +27,6 @@ import java.util.List;
 public class GoodsController {
 
     @Autowired
-    UserService userService;
-
-    @Autowired
     RedisService redisService;
 
     @Autowired
@@ -46,13 +42,15 @@ public class GoodsController {
      * 商品列表页面
      * <p>
      * Jmeter: 1000 * 10 -> QPS:433
+     * <p>
+     * 优化: 页面级缓存
      */
     @RequestMapping(value = "/to_list", produces = "text/html")
     @ResponseBody
     public String list(HttpServletRequest request, HttpServletResponse response, Model model, User user) {
 
         //取缓存
-        String html = redisService.get(GoodsKey.getGoodsList, "", String.class);
+        String html = redisService.get(GoodsKeyPrefix.getGoodsList, "", String.class);
         if (!StringUtils.isEmpty(html)) {
             return html;
         }
@@ -66,7 +64,7 @@ public class GoodsController {
         html = thymeleafViewResolver.getTemplateEngine().process("goods_list", ctx);
 
         if (!StringUtils.isEmpty(html)) {
-            redisService.set(GoodsKey.getGoodsList, "", html);
+            redisService.set(GoodsKeyPrefix.getGoodsList, "", html);
         }
         //结果输出
         return html;
@@ -74,55 +72,60 @@ public class GoodsController {
 
 
     /**
-     * 商品详情页面
+     * 商品详情页面（未做页面静态化处理）
+     * <p>
+     * 优化: URL级缓存, 实际上URL级缓存和页面级缓存是一样的, 只不过URL级缓存会根据url的参数从redis中取不同的数据
      */
     @RequestMapping(value = "/to_detail2/{goodsId}", produces = "text/html")
     @ResponseBody
     public String detail2(HttpServletRequest request, HttpServletResponse response, Model model, User user, @PathVariable("goodsId") long goodsId) {
-        model.addAttribute("user", user);
 
         //取缓存
-        String html = redisService.get(GoodsKey.getGoodsDetail, "" + goodsId, String.class);
+        String html = redisService.get(GoodsKeyPrefix.getGoodsDetail, "" + goodsId, String.class);
         if (!StringUtils.isEmpty(html)) {
             return html;
         }
 
         //根据id查询商品详情
         GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+        model.addAttribute("user", user);
         model.addAttribute("goods", goods);
 
+        // 获取商品的秒杀开始与结束的时间
         long startTime = goods.getStartDate().getTime();
         long endTime = goods.getEndDate().getTime();
         long now = System.currentTimeMillis();
 
+        // 秒杀状态; 0: 秒杀未开始，1: 秒杀进行中，2: 秒杀已结束
         int seckillStatus = 0;
+        // 秒杀剩余时间
         int remainSeconds = 0;
 
-        if (now < startTime) {//秒杀还没开始，倒计时
+        if (now < startTime) { // 秒杀还没开始，倒计时
             seckillStatus = 0;
             remainSeconds = (int) ((startTime - now) / 1000);
-        } else if (now > endTime) {//秒杀已经结束
+        } else if (now > endTime) { // 秒杀已经结束
             seckillStatus = 2;
             remainSeconds = -1;
-        } else {//秒杀进行中
+        } else { // 秒杀进行中
             seckillStatus = 1;
             remainSeconds = 0;
         }
         model.addAttribute("seckillStatus", seckillStatus);
         model.addAttribute("remainSeconds", remainSeconds);
 
-        //手动渲染
+        // 手动渲染
         SpringWebContext ctx = new SpringWebContext(request, response,
                 request.getServletContext(), request.getLocale(), model.asMap(), applicationContext);
         html = thymeleafViewResolver.getTemplateEngine().process("goods_detail", ctx);
         if (!StringUtils.isEmpty(html)) {
-            redisService.set(GoodsKey.getGoodsDetail, "" + goodsId, html);
+            redisService.set(GoodsKeyPrefix.getGoodsDetail, "" + goodsId, html);
         }
         return html;
     }
 
     /**
-     * 商品详情页面
+     * 商品详情页面（页面静态化处理, 直接将数据返回给客户端，交给客户端处理）
      */
     @RequestMapping(value = "/detail/{goodsId}")
     @ResponseBody
@@ -131,20 +134,25 @@ public class GoodsController {
         //根据id查询商品详情
         GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
 
+        // 获取商品的秒杀开始与结束的时间
         long startTime = goods.getStartDate().getTime();
         long endTime = goods.getEndDate().getTime();
         long now = System.currentTimeMillis();
 
+        // 秒杀状态; 0: 秒杀未开始，1: 秒杀进行中，2: 秒杀已结束
         int seckillStatus = 0;
+        // 秒杀剩余时间
         int remainSeconds = 0;
 
         if (now < startTime) { // 秒杀还没开始，倒计时
+            seckillStatus = 0;
             remainSeconds = (int) ((startTime - now) / 1000);
         } else if (now > endTime) { // 秒杀已经结束
             seckillStatus = 2;
             remainSeconds = -1;
         } else { // 秒杀进行中
             seckillStatus = 1;
+            remainSeconds = 0;
         }
 
         GoodsDetailVo vo = new GoodsDetailVo();

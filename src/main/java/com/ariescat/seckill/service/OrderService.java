@@ -4,8 +4,8 @@ import com.ariescat.seckill.bean.OrderInfo;
 import com.ariescat.seckill.bean.SeckillOrder;
 import com.ariescat.seckill.bean.User;
 import com.ariescat.seckill.mapper.OrderMapper;
-import com.ariescat.seckill.redis.key.SeckillOrderKey;
 import com.ariescat.seckill.redis.RedisService;
+import com.ariescat.seckill.redis.key.SeckillOrderKeyPrefix;
 import com.ariescat.seckill.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class OrderService {
     RedisService redisService;
 
     public SeckillOrder getOrderByUserIdGoodsId(long userId, long goodsId) {
-        return redisService.get(SeckillOrderKey.getSeckillOrderByUidGid, "" + userId + "_" + goodsId, SeckillOrder.class);
+        return redisService.get(SeckillOrderKeyPrefix.getSeckillOrderByUidGid, "" + userId + "_" + goodsId, SeckillOrder.class);
     }
 
     public OrderInfo getOrderById(long orderId) {
@@ -53,7 +53,7 @@ public class OrderService {
         seckillOrder.setUserId(user.getId());
         orderMapper.insertSeckillOrder(seckillOrder);
 
-        redisService.set(SeckillOrderKey.getSeckillOrderByUidGid, "" + user.getId() + "_" + goods.getId(), seckillOrder);
+        redisService.set(SeckillOrderKeyPrefix.getSeckillOrderByUidGid, "" + user.getId() + "_" + goods.getId(), seckillOrder);
 
         return orderInfo;
     }

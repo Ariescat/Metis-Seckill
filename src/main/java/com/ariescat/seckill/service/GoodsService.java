@@ -19,8 +19,6 @@ public class GoodsService {
 
     /**
      * 查询商品列表
-     *
-     * @return
      */
     public List<GoodsVo> listGoodsVo() {
         return goodsMapper.listGoodsVo();
@@ -28,8 +26,6 @@ public class GoodsService {
 
     /**
      * 根据id查询指定商品
-     *
-     * @return
      */
     public GoodsVo getGoodsVoByGoodsId(long goodsId) {
         return goodsMapper.getGoodsVoByGoodsId(goodsId);
@@ -37,8 +33,6 @@ public class GoodsService {
 
     /**
      * 减少库存，每次减一
-     *
-     * @return
      */
     public boolean reduceStock(GoodsVo goods) {
         int numAttempts = 0;

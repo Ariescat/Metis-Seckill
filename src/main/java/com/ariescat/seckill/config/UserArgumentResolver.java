@@ -11,6 +11,9 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+/**
+ * 解析请求，并将请求的参数设置到方法参数中
+ */
 @Service
 public class UserArgumentResolver implements HandlerMethodArgumentResolver {
 
@@ -18,7 +21,9 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
     UserService userService;
 
     /**
-     * 当参数类型为User才做处理
+     * 当参数类型为 User才做处理
+     * <p>
+     * 然后，该 Controller方法继续往下执行时所看到的 User 对象就是在这里的 resolveArgument()方法处理过的对象
      */
     @Override
     public boolean supportsParameter(MethodParameter methodParameter) {
@@ -35,6 +40,7 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
 //        HttpServletRequest request = nativeWebRequest.getNativeRequest(HttpServletRequest.class);
 //        HttpServletResponse response = nativeWebRequest.getNativeResponse(HttpServletResponse.class);
 //
+//        // 从请求对象中获取token（token可能有两种方式从客户端返回，1：通过url的参数，2：通过set-Cookie字段）
 //        String paramToken = request.getParameter(UserService.COOKIE_NAME_TOKEN);
 //        String cookieToken = getCookieValue(request, UserService.COOKIE_NAME_TOKEN);
 //        if (StringUtils.isEmpty(cookieToken) && StringUtils.isEmpty(paramToken)) {
@@ -43,7 +49,7 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
 //        String token = StringUtils.isEmpty(paramToken) ? cookieToken : paramToken;
 //        return userService.getByToken(response, token);
         /**
-         *  threadlocal 存储线程副本 保证线程不冲突
+         * threadlocal 存储线程副本 保证线程不冲突
          */
         return UserContext.getUser();
     }

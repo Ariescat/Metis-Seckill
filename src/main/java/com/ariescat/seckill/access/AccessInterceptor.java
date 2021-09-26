@@ -20,6 +20,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * 用户访问拦截器，限制用户对某一个接口的频繁访问
+ */
 @Service
 public class AccessInterceptor extends HandlerInterceptorAdapter {
 
@@ -31,48 +34,55 @@ public class AccessInterceptor extends HandlerInterceptorAdapter {
     @Autowired
     RedisService redisService;
 
+    /**
+     * 目标方法执行前的处理
+     * <p>
+     * 查询访问次数，进行防刷请求拦截
+     */
     @Override
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
                              Object handler) throws Exception {
-        /**
-         * 获取调用 获取主要方法
-         */
+        // 指明拦截的是方法
         if (handler instanceof HandlerMethod) {
-            log.info("打印拦截方法handler ：{} ", handler);
-            HandlerMethod hm = (HandlerMethod) handler;
-            //方便mybatis 测试
-//			if(hm.getMethod().getName().startsWith("test")){
-//				return true;
-//			}
-            User user = getUser(request, response);
-            UserContext.setUser(user);
+            User user = this.getUser(request, response); // 获取用户对象
+            UserContext.setUser(user); // 保存用户到ThreadLocal，这样，同一个线程访问的是同一个用户
 
+            HandlerMethod hm = (HandlerMethod) handler;
+            log.info("拦截handler: {} ", hm);
+            // 获取标注了@AccessLimit的方法，没有注解，则直接返回
             AccessLimit accessLimit = hm.getMethodAnnotation(AccessLimit.class);
+            // 如果没有添加@AccessLimit注解，直接放行（true）
             if (accessLimit == null) {
                 return true;
             }
+
+            // 获取注解的元素值
             int seconds = accessLimit.seconds();
-            int maxCount = accessLimit.maxCount();
+            int maxCount = accessLimit.maxAccessCount();
             boolean needLogin = accessLimit.needLogin();
+
             String key = request.getRequestURI();
             if (needLogin) {
                 if (user == null) {
-                    render(response, CodeMsg.SESSION_ERROR);
+                    this.render(response, CodeMsg.SESSION_ERROR);
                     return false;
                 }
-                key += "_" + user.getNickname();
+                key += ":" + user.getId();
             } else {
                 //do nothing
             }
-            AccessKey ak = AccessKey.withExpire(seconds);
-            Integer count = redisService.get(ak, key, Integer.class);
+            AccessKey accessKey = AccessKey.withExpire(seconds);
+            Integer count = redisService.get(accessKey, key, Integer.class);
             if (count == null) {
-                redisService.set(ak, key, 1);
+                // 第一次重复点击秒杀
+                redisService.set(accessKey, key, 1);
             } else if (count < maxCount) {
-                redisService.incr(ak, key);
+                // 点击次数为未达最大值
+                redisService.incr(accessKey, key);
             } else {
-                render(response, CodeMsg.ACCESS_LIMIT_REACHED);
+                // 点击次数已满
+                this.render(response, CodeMsg.ACCESS_LIMIT_REACHED);
                 return false;
             }
         }
@@ -85,15 +95,9 @@ public class AccessInterceptor extends HandlerInterceptorAdapter {
         UserContext.removeUser();
     }
 
-    private void render(HttpServletResponse response, CodeMsg cm) throws Exception {
-        response.setContentType("application/json;charset=UTF-8");
-        OutputStream out = response.getOutputStream();
-        String str = JSON.toJSONString(Result.error(cm));
-        out.write(str.getBytes(StandardCharsets.UTF_8));
-        out.flush();
-        out.close();
-    }
-
+    /**
+     * 和 UserArgumentResolver 功能类似，用于解析拦截的请求，获取 User 对象
+     */
     private User getUser(HttpServletRequest request, HttpServletResponse response) {
         String paramToken = request.getParameter(UserService.COOKIE_NAME_TOKEN);
         String cookieToken = getCookieValue(request, UserService.COOKIE_NAME_TOKEN);
@@ -104,7 +108,19 @@ public class AccessInterceptor extends HandlerInterceptorAdapter {
         return userService.getByToken(response, token);
     }
 
-    //遍历所有cookie，找到需要的那个cookie
+    /**
+     * 点击次数已满后，向客户端反馈一个“频繁请求”提示信息
+     */
+    private void render(HttpServletResponse response, CodeMsg cm) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        OutputStream out = response.getOutputStream();
+        String str = JSON.toJSONString(Result.error(cm));
+        out.write(str.getBytes(StandardCharsets.UTF_8));
+        out.flush();
+        out.close();
+    }
+
+    // 遍历所有cookie，找到需要的那个cookie
     private String getCookieValue(HttpServletRequest request, String cookiName) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null || cookies.length <= 0) {

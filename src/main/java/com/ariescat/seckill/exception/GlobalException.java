@@ -9,6 +9,9 @@ public class GlobalException extends RuntimeException {
 
     private final CodeMsg codeMsg;
 
+    /**
+     * 接收CodeMsg
+     */
     public GlobalException(CodeMsg codeMsg) {
         super(codeMsg.toString());
         this.codeMsg = codeMsg;
