@@ -22,6 +22,10 @@
 
   相似的项目：
 
+  * [zaiyunduan123 / springboot-seckill](https://github.com/zaiyunduan123/springboot-seckill.git)
+
+    基于 SpringBoot + MySQL + Redis + RabbitMQ + Guava 开发的高并发商品限时秒杀系统
+
   * [Grootzz / seckill](https://github.com/Grootzz/seckill.git)
 
     Spring Boot+MySQL+Redis+RabbitMQ 的高性能高并发商品秒杀系统设计与优化
@@ -29,10 +33,6 @@
   * [Grootzz / dis-seckill](https://github.com/Grootzz/dis-seckill.git)
 
     SpringBoot+Zookeeper+Dubbo 打造**分布式**高并发商品秒杀系统
-
-  * [zaiyunduan123 / springboot-seckill](https://github.com/zaiyunduan123/springboot-seckill.git)
-
-    基于 SpringBoot + MySQL + Redis + RabbitMQ + Guava 开发的高并发商品限时秒杀系统
 
   * [qiurunze123 / miaosha](https://github.com/qiurunze123/miaosha.git)
 
