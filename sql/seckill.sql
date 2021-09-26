@@ -120,3 +120,4 @@ CREATE TABLE `sk_user` (
 -- Records of sk_user
 -- ----------------------------
 INSERT INTO `sk_user` VALUES ('18812345678', 'ariescat', 'b7797cce01b4b131b433b6acf4add449', '1a2b3c4d', null, '2018-05-21 21:10:21', '2018-05-21 21:10:25', '1');
+INSERT INTO `sk_user` VALUES ('18718185897', 'ariesdog', 'b7797cce01b4b131b433b6acf4add449', '1a2b3c4d', null, '2018-05-21 21:10:21', '2018-05-21 21:10:25', '1');
